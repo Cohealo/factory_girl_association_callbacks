@@ -1,18 +1,31 @@
 # Factory Girl Association Callbacks
 
-# What is this?
+Custom strategies for factory girl that add `before` and `after`
+callbacks to association attributes. Helpful when attributes have values
+that are dependent on each other.
 
-Its a set of custom strategies for factory girl. See factory girls
-`GETTING_STARTED.md` for a description of a custom strategy.
+See factory girls `GETTING_STARTED.md` for a description of a custom
+strategy.
 
-These strategies add callbacks to association attributes which are
-helpful to when attributes have values that are dependent on each other.
+## Installation
+
+Add a git submodule for this project to vendor:
+
+    git submodule add https://github.com/ajh/factory_girl_association_callbacks.git vendor/factory_girl_association_callbacks
+
+Then configure it in `spec/spec_helper.rb` like this:
+
+    # after require 'factory_girl'
+
+    # Replace default factory girl strategies
+    require Rails.root.join('vendor/factory_girl_association_callbacks/lib/factory_girl_association_callbacks')
+    FactoryGirlAssociationCallbacks::Strategy.register
 
 # What do I mean by consistency?
 
-All associations should be consistent. For example when creating a booking,
-its equipment and booking\_data should have facilities within the same
-health system. Also delivery dates should make sense given the booking, etc.
+When associations have attributes that are dependant on each other, for
+example a User may have a Contact and a TimeZone. The Contact address\_state
+should be consistent with the TimeZone value (like MA and EST).
 
 # About the callbacks
 
@@ -34,6 +47,12 @@ is passed three keyword arguments, `cache`, `attrs` and `instance`.
   creating the association object.
 * `instance` is the object the factory is building
 
+Here's an example:
+
+    association :user, factory: :user,
+      before: -> (cache:, attrs:, instance:) { attrs[:name] = "Fake user for #{instance.name}"},
+      after: -> (user, cache:, **_) { cache[:user_address_state] = user.address_state }
+
 ## after callback
 
 The `after` callback is called after the association was created by its
@@ -44,17 +63,16 @@ factory. It is passed an argument and two keywords.
 * `instance` is the same as above. In the example below, it would be an
   Equipment instance, not an association instance like User or Facility.
 
-Here's an example of a way to use these. This factory builds a equipment
-that has a user and a facility. Both of these should belong to the same
-health system to be consistent.
+Here's an example of a way to use these. This factory builds a User
+keeping the Contact and Timezone consistent.
 
-    factory :equipment do
-      association :user,
-                  before: -> (cache:, attrs:, instance:) { attrs[:health_system] = cache[:health_system] if cache[:health_system] },
-                  after: -> (u, cache:, instance:) { cache[:health_system] ||= u.health_system }
-      association :facility,
-                  before: -> (cache:, attrs:, instance:) { attrs[:health_system] = cache[:health_system] if cache[:health_system] },
-                  after: -> (f, cache:, instance:) { cache[:health_system] ||= f.health_system }
+    factory :user do
+      association :contact,
+                  before: -> (cache:, attrs:, instance:) { attrs[:address_state] = cache[:address_state] if cache[:address_state] },
+                  after: -> (contact, cache:, instance:) { cache[:address_state] ||= contact.address_state }
+      association :time_zone,
+                  before: -> (cache:, attrs:, instance:) { attrs[:zone] = TimeZone.zone_for_state(cache[:address_state]) if cache[:address_state] },
+                  after: -> (time_zone, cache:, instance:) { cache[:address_state] ||= TimeZone.state_for_zone(time_zone.zone) }
     end
 
 # Cache and ignored attributes
@@ -66,13 +84,13 @@ ignored attribute changes as well.
 For example:
 
     factory :example do
-      ignore { health_system nil }
-      association :facility,
+      ignore { user nil }
+      association :blah,
                   before: -> (cache, attrs) { ... }
     end
 
-    FactoryGirl.build :example # before callback will see cache = {:health_system => nil}
-    FactoryGirl.build :example, health_system: h # before callback will see cache = {:health_system => h}
+    FactoryGirl.build :example # before callback will see cache = {:user => nil}
+    FactoryGirl.build :example, user: u # before callback will see cache = {:user => u}
 
 # Notes on strategies
 
