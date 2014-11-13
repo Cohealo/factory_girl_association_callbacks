@@ -8,9 +8,8 @@ Gem::Specification.new do |spec|
   spec.version       = FactoryGirlAssociationCallbacks::VERSION
   spec.authors       = ["Andy Hartford"]
   spec.email         = ["andy.hartford@cohealo.com"]
-  spec.summary       = %q{TODO: Write a short summary. Required.}
-  spec.description   = %q{TODO: Write a longer description. Optional.}
-  spec.homepage      = ""
+  spec.summary       = %q{Strategies for factory girl that add before and after callbacks to association attributes}
+  spec.homepage      = "https://github.com/Cohealo/factory_girl_association_callbacks"
   spec.license       = "MIT"
 
   spec.files         = `git ls-files -z`.split("\x0")
